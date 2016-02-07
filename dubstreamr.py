@@ -5,6 +5,7 @@ import random
 import math
 
 Arrow = collections.namedtuple("Arrow", ['index', 'x', 'y'])
+Rows = collections.namedtuple("Rows", ['none', 'measure', 'arrows'])
 
 ARROWS = [
     Arrow(0, 0, 1),
@@ -17,16 +18,35 @@ ARROWS = [
     Arrow(7, 5, 1),
 ]
 
-ROWS = [
-    "|<      :       |",
-    "|  v    :       |",
-    "|    ^  :       |",
-    "|      >:       |",
-    "|       :<      |",
-    "|       :  v    |",
-    "|       :    ^  |",
-    "|       :      >|",
-]
+ROWS = Rows(
+    "|       :       |",
+    "| - - - : - - - |",
+    [
+        "|<      :       |",
+        "|  v    :       |",
+        "|    ^  :       |",
+        "|      >:       |",
+        "|       :<      |",
+        "|       :  v    |",
+        "|       :    ^  |",
+        "|       :      >|",
+    ]
+)
+
+SMROWS = Rows(
+    "00000000",
+    ",",
+    [
+        "10000000",
+        "01000000",
+        "00100000",
+        "00010000",
+        "00001000",
+        "00000100",
+        "00000010",
+        "00000001",
+    ]
+)
 
 def dist(a1, a2):
     return math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
@@ -74,15 +94,22 @@ class Player:
         valid = list(filter(self.isvalidstep, ARROWS))
         self.step(random.choice(valid))
 
-    def printchart(self):
+    def printchart(self, note, offset=0, rows=ROWS):
+        i = 0
+        while i < offset:
+            print(rows.none)
+            i += 1
         for n in self.chart:
-            print(ROWS[n])
+            if i > 0 and i % note == 0:
+                print(rows.measure)
+            print(rows.arrows[n])
+            i += 1
+        while i % note != 0:
+            print(rows.none)
+            i += 1
 
 p = Player()
 p.randomstart()
-p.randomstep()
-p.randomstep()
-p.randomstep()
-p.randomstep()
-p.randomstep()
-p.printchart()
+for n in range(54):
+    p.randomstep()
+p.printchart(16)
