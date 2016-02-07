@@ -54,6 +54,9 @@ SMROWS = Rows(
 def dist(a1, a2):
     return math.sqrt((a1.x - a2.x) ** 2 + (a1.y - a2.y) ** 2)
 
+def angle(a1, a2):
+    return math.atan2(a2.y - a1.y, a2.x - a1.x)
+
 class Player:
     def __init__(self):
         # Player parameters
@@ -67,6 +70,9 @@ class Player:
         self.weight = 0
         self.momentum = [0, 0]
         self.rotation = 0
+
+    def rotation(self):
+        return angle(*self.feet)
 
     def randomstart(self):
         #self.weight = random.randrange(2)
