@@ -7,6 +7,7 @@ import math
 Arrow = collections.namedtuple("Arrow", ['index', 'x', 'y'])
 Rows = collections.namedtuple("Rows", ['none', 'measure', 'arrows'])
 
+# Arrow data (id, location on pad)
 ARROWS = [
     Arrow(0, 0, 1),
     Arrow(1, 1, 2),
@@ -18,6 +19,7 @@ ARROWS = [
     Arrow(7, 5, 1),
 ]
 
+# Rows for a semi-readable text chart
 ROWS = Rows(
     "|       :       |",
     "| - - - : - - - |",
@@ -33,6 +35,7 @@ ROWS = Rows(
     ]
 )
 
+# Rows for a SM file
 SMROWS = Rows(
     "00000000",
     ",",
@@ -96,14 +99,17 @@ class Player:
 
     def printchart(self, note, offset=0, rows=ROWS):
         i = 0
+        # Offset in the first measure
         while i < offset:
             print(rows.none)
             i += 1
+        # Print actual chart
         for n in self.chart:
             if i > 0 and i % note == 0:
                 print(rows.measure)
             print(rows.arrows[n])
             i += 1
+        # Fill out remainder of last measure
         while i % note != 0:
             print(rows.none)
             i += 1
