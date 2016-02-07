@@ -90,6 +90,12 @@ class Player:
         # Don't step on your other foot
         if arrow == self.feet[self.weight]:
             return False
+        # Don't stretch too far
+        if dist(self.feet[self.weight], arrow) > 2.6:
+            return False
+        # Don't move foot too quickly
+        if dist(self.feet[1 - self.weight], arrow) > 3.1:
+            return False
         return True
 
     def step(self, arrow):
