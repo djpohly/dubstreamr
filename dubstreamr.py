@@ -136,22 +136,44 @@ class Player:
         self.step(ARROWS[4])
 
     def isvalidstep(self, arrow):
-        # Don't step on your other foot
+        # Set up proposed new position
+        newfeet = self.feet.copy()
+        newfeet[1 - self.weight] = arrow
+
+        # Going nowhere is always an option
+        if newfeet == self.feet:
+            return True
+
+        # Don't step on your other foot (no footswitches)
         if arrow == self.feet[self.weight]:
             return False
-        # Don't stretch too far
-        if dist(self.feet[self.weight], arrow) > 2.6:
-            return False
         # Don't move foot too quickly
-        if dist(self.feet[1 - self.weight], arrow) > 3.1:
+        if dist(self.feet[1 - self.weight], arrow) > 2.6:
+            return False
+        # Don't stretch too far
+        if dist(*newfeet) > 2.6:
+            return False
+
+        # Calculate angle for least twisting
+        newangle = angle(*newfeet, self.rotation)
+
+        # Don't turn backwards (never place feet more than 180 degrees rotated, and only allow
+        # exactly 180 when the feet are next to each other, as in the middle of a staircase)
+        if isabove(abs(newangle), math.pi) or (math.isclose(newangle, math.pi) and isabove(dist(*newfeet), 1)):
+            return False
+        # Don't force a quick twist
+        if isabove(abs(newangle - self.rotation), math.pi):
             return False
         return True
 
     def step(self, arrow):
-        # Shift weight, place foot, and remember the step
+        # Shift weight, place foot, and update angle
         self.weight ^= 1
         self.feet[self.weight] = arrow
-        self.chart.append(arrow.index)
+        self.rotation = angle(*self.feet, self.rotation)
+
+        # Save to chart
+        self.chart.append((arrow.index, self.weight, self.rotation))
 
     def randomstep(self):
         # Figure out where we can step
@@ -165,10 +187,12 @@ class Player:
             print(rows.none)
             i += 1
         # Print actual chart
-        for n in self.chart:
+        lr = 0
+        for n, w, rot in self.chart:
             if i > 0 and i % note == 0:
                 print(rows.measure)
-            print(rows.arrows[n])
+            print("%s %s\t%4d\t%+4d" % (rows.arrows[n], "LR"[w], int(math.degrees(rot)), int(math.degrees(rot - lr))))
+            lr = rot
             i += 1
         # Fill out remainder of last measure
         while i % note != 0:
