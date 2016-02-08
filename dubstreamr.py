@@ -4,6 +4,50 @@ import collections
 import random
 import math
 
+# Problems still to solve
+#
+# Advanced crossovers:
+# |      >:       | L	   0	  +0
+# |       :<      | R	   0	  +0
+# |       :    ^  | L	 135	+135
+# |      >:       | R	 153	 +18
+# |       :<      | L	 180	 +26  <- staying crossed here
+# |      >:       | R	 180	  +0
+# |       :<      | L	 180	  +0
+# |  v    :       | R	 153	 -26  <- staying crossed here!!
+# | - - - : - - - |
+# |    ^  :       | L	  90	 -63  <- staying crossed here
+# |<      :       | R	 135	 +45  <- staying crossed here
+# |    ^  :       | L	 135	  +0
+# |  v    :       | R	  90	 -45
+# |<      :       | L	  45	 -45
+# |    ^  :       | R	 -45	 -90
+# |      >:       | L	-135	 -90
+# |       :<      | R	   0	+135
+#
+# Thoughts: if abs(rotation) > 90, next step either decreases abs(rotation) or
+# stay on the same arrow.
+#
+#
+# 180 ambiguity:
+# |      >:       | L	   0	  +0
+# |       :<      | R	   0	  +0
+# |       :  v    | L	-135	-135
+# |      >:       | R	-153	 -18
+# |       :  v    | L	-153	  +0
+# |      >:       | R	-153	  +0
+# |       :<      | L	 180	+333
+# |      >:       | R	 180	  +0
+# | - - - : - - - |
+# |       :<      | L	 180	  +0
+# |  v    :       | R	 153	 -26
+# |       :<      | L	 153	  +0
+# |    ^  :       | R	-153	-306
+# |      >:       | L	-135	 +18
+# |    ^  :       | R	-135	  +0
+# |<      :       | L	 -45	 +90
+# |    ^  :       | R	 -45	  +0
+
 Arrow = collections.namedtuple("Arrow", ['index', 'x', 'y'])
 Rows = collections.namedtuple("Rows", ['none', 'measure', 'arrows'])
 
