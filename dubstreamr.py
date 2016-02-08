@@ -113,11 +113,7 @@ class Player:
         # Starting position
         self.feet = [ARROWS[3], ARROWS[4]]
         self.weight = 0
-        self.momentum = [0, 0]
         self.rotation = 0
-
-    def rotation(self):
-        return angle(*self.feet)
 
     def randomstart(self):
         #self.weight = random.randrange(2)
