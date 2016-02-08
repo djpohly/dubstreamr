@@ -8,46 +8,28 @@ import math
 # Problems still to solve
 #
 # Advanced crossovers:
-# |      >:       | L	   0	  +0
-# |       :<      | R	   0	  +0
-# |       :    ^  | L	 135	+135
-# |      >:       | R	 153	 +18
-# |       :<      | L	 180	 +26  <- staying crossed here
-# |      >:       | R	 180	  +0
-# |       :<      | L	 180	  +0
-# |  v    :       | R	 153	 -26  <- staying crossed here!!
-# | - - - : - - - |
-# |    ^  :       | L	  90	 -63  <- staying crossed here
-# |<      :       | R	 135	 +45  <- staying crossed here
-# |    ^  :       | L	 135	  +0
-# |  v    :       | R	  90	 -45
-# |<      :       | L	  45	 -45
-# |    ^  :       | R	 -45	 -90
-# |      >:       | L	-135	 -90
-# |       :<      | R	   0	+135
+# |       :<      | L  -45     +90
+# |       :  v    | R   45     +90
+# |       :      >| L  135     +90
+# |       :  v    | R  135      +0
+# |       :    ^  | L   90     -45 <- not quite uncrossed
+# |      >:       | R  153     +63 <- before starting a new crossover
+# |       :    ^  | L  153      +0
+# |      >:       | R  153      +0
+# |       :    ^  | L  153      +0
+# |      >:       | R  153      +0
+# |       :    ^  | L  153      +0
+# |       :  v    | R   90     -63
+# |       :      >| L  135     +45
+# |       :  v    | R  135      +0
+# |       :    ^  | L   90     -45
+# |       :      >| R   45     -45
 #
-# Thoughts: if abs(rotation) > 90, next step either decreases abs(rotation) or
-# stay on the same arrow.
+# Thoughts: after crossing over, it is not enough just to bring it back to
+# level (+/- pi) but must get abs below pi to feel natural.
 #
-#
-# 180 ambiguity:
-# |      >:       | L	   0	  +0
-# |       :<      | R	   0	  +0
-# |       :  v    | L	-135	-135
-# |      >:       | R	-153	 -18
-# |       :  v    | L	-153	  +0
-# |      >:       | R	-153	  +0
-# |       :<      | L	 180	+333
-# |      >:       | R	 180	  +0
-# | - - - : - - - |
-# |       :<      | L	 180	  +0
-# |  v    :       | R	 153	 -26
-# |       :<      | L	 153	  +0
-# |    ^  :       | R	-153	-306
-# |      >:       | L	-135	 +18
-# |    ^  :       | R	-135	  +0
-# |<      :       | L	 -45	 +90
-# |    ^  :       | R	 -45	  +0
+# However, it is also natural to stay crossed over, or even get further
+# crossed, when the other foot is repeating the same arrow.
 
 Arrow = collections.namedtuple("Arrow", ['index', 'x', 'y'])
 Rows = collections.namedtuple("Rows", ['none', 'measure', 'arrows'])
@@ -163,6 +145,9 @@ class Player:
             return False
         # Don't force a quick twist
         if isabove(abs(newangle - self.rotation), math.pi):
+            return False
+        # If we are crossed over, we need to uncross
+        if isabove(abs(self.rotation), math.pi / 2) and not isbelow(abs(newangle), abs(self.rotation)):
             return False
         return True
 
