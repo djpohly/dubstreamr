@@ -99,8 +99,16 @@ SMROWS = Rows(
 def dist(a1, a2):
     return math.sqrt((a1.x - a2.x) ** 2 + (a1.y - a2.y) ** 2)
 
-def angle(a1, a2):
-    return math.atan2(a2.y - a1.y, a2.x - a1.x)
+def angle(a1, a2, oldangle=0.0):
+    r = math.atan2(a2.y - a1.y, a2.x - a1.x)
+    # Minimize twisting if a previous angle is given
+    return oldangle + math.fmod(r - oldangle, 2 * math.pi)
+
+def isabove(x, y):
+    return x > y and not math.isclose(x, y)
+
+def isbelow(x, y):
+    return x < y and not math.isclose(x, y)
 
 class Player:
     def __init__(self):
