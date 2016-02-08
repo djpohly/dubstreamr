@@ -8,28 +8,26 @@ import math
 # Problems still to solve
 #
 # Advanced crossovers:
-# |       :<      | L  -45     +90
-# |       :  v    | R   45     +90
-# |       :      >| L  135     +90
-# |       :  v    | R  135      +0
-# |       :    ^  | L   90     -45 <- not quite uncrossed
-# |      >:       | R  153     +63 <- before starting a new crossover
-# |       :    ^  | L  153      +0
-# |      >:       | R  153      +0
-# |       :    ^  | L  153      +0
-# |      >:       | R  153      +0
-# |       :    ^  | L  153      +0
-# |       :  v    | R   90     -63
-# |       :      >| L  135     +45
-# |       :  v    | R  135      +0
-# |       :    ^  | L   90     -45
-# |       :      >| R   45     -45
+# |    ^  :       | L       26      +0
+# |      >:       | R       45     +18
+# |    ^  :       | L       45      +0
+# |      >:       | R       45      +0
+# |    ^  :       | L       45      +0
+# |      >:       | R       45      +0
+# |       :<      | LPX    180    +135
+# |  v    :       | R X    153     -26 <- rotation goes down but feels more crossed
+# |       :<      | L X    153      +0
+# |  v    :       | R X    153      +0
+# |       :<      | L X    153      +0
+# |  v    :       | R X    153      +0
+# |    ^  :       | L X     90     -63
+# |      >:       | R       45     -45
+# |    ^  :       | L       45      +0
+# |  v    :       | R       90     +45
 #
-# Thoughts: after crossing over, it is not enough just to bring it back to
-# level (+/- pi) but must get abs below pi to feel natural.
-#
-# However, it is also natural to stay crossed over, or even get further
-# crossed, when the other foot is repeating the same arrow.
+# Thoughts: we need some special handling for being crossed in the middle.  Not
+# only is it the only permissible 180 rotation, but even things which lower the
+# rotation feel like crossing more due to stretch distance.
 
 Arrow = collections.namedtuple("Arrow", ['index', 'x', 'y'])
 Rows = collections.namedtuple("Rows", ['none', 'measure', 'arrows'])
@@ -104,6 +102,8 @@ class Player:
         self.feet = [ARROWS[3], ARROWS[4]]
         self.weight = 0
         self.rotation = 0
+        self.planted = False
+        self.crossed = -1
 
     def randomstart(self):
         #self.weight = random.randrange(2)
@@ -120,7 +120,7 @@ class Player:
     def isvalidstep(self, arrow):
         # Set up proposed new position
         newfeet = self.feet.copy()
-        newfeet[1 - self.weight] = arrow
+        newfeet[self.weight ^ 1] = arrow
 
         # Going nowhere is always an option
         if newfeet == self.feet:
@@ -130,7 +130,7 @@ class Player:
         if arrow == self.feet[self.weight]:
             return False
         # Don't move foot too quickly
-        if dist(self.feet[1 - self.weight], arrow) > 2.6:
+        if dist(self.feet[self.weight ^ 1], arrow) > 2.6:
             return False
         # Don't stretch too far
         if dist(*newfeet) > 2.6:
@@ -139,26 +139,43 @@ class Player:
         # Calculate angle for least twisting
         newangle = angle(*newfeet, self.rotation)
 
-        # Don't turn backwards (never place feet more than 180 degrees rotated, and only allow
-        # exactly 180 when the feet are next to each other, as in the middle of a staircase)
+        # Don't turn backwards (never place feet more than 180 degrees rotated,
+        # and only allow exactly 180 when the feet are next to each other, as
+        # in the middle of a staircase)
         if isabove(abs(newangle), math.pi) or (math.isclose(newangle, math.pi) and isabove(dist(*newfeet), 1)):
             return False
         # Don't force a quick twist
         if isabove(abs(newangle - self.rotation), math.pi):
             return False
-        # If we are crossed over, we need to uncross
-        if isabove(abs(self.rotation), math.pi / 2) and not isbelow(abs(newangle), abs(self.rotation)):
+
+        # If we are crossed over, the anchor foot if moved needs to help us uncross
+        if self.crossed == self.weight and not isbelow(abs(newangle), abs(self.rotation)):
             return False
+        # The crossed foot may only cross further if the anchor has not moved
+        if self.crossed == self.weight ^ 1 and not isbelow(abs(newangle), abs(self.rotation)) and not self.planted:
+            return False
+
+        # If we are crossed over, allow a step (1) if the uncrossed foot has remained planted, (2)
         return True
 
     def step(self, arrow):
-        # Shift weight, place foot, and update angle
+        # Shift weight and place foot
         self.weight ^= 1
+        if self.crossed != self.weight and self.feet[self.weight] != arrow:
+            self.planted = False
         self.feet[self.weight] = arrow
-        self.rotation = angle(*self.feet, self.rotation)
+
+        # Update rotation angle
+        newrot = angle(*self.feet, self.rotation)
+        if self.crossed < 0 and isabove(abs(newrot), math.pi / 2):
+            self.crossed = self.weight
+            self.planted = True
+        elif isbelow(abs(newrot), math.pi / 2):
+            self.crossed = -1
+        self.rotation = newrot
 
         # Save to chart
-        self.chart.append((arrow.index, self.weight, self.rotation))
+        self.chart.append((arrow.index, self.weight, self.rotation, self.planted, self.crossed))
 
     def randomstep(self):
         # Figure out where we can step
@@ -173,10 +190,11 @@ class Player:
             i += 1
         # Print actual chart
         lr = 0
-        for n, w, rot in self.chart:
+        for n, w, rot, p, x in self.chart:
             if i > 0 and i % note == 0:
                 print(rows.measure)
-            print("%s %s\t%4d\t%+4d" % (rows.arrows[n], "LR"[w], int(math.degrees(rot)), int(math.degrees(rot - lr))))
+            print("%s %s%s%s\t%4d\t%+4d" % (rows.arrows[n], "LR"[w], "P" if p else " ", "X" if x >= 0 else " ",
+                int(math.degrees(rot)), int(math.degrees(rot - lr))))
             lr = rot
             i += 1
         # Fill out remainder of last measure
