@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import sys
 import collections
 import random
 import math
@@ -172,6 +173,6 @@ class Player:
 
 p = Player()
 p.randomstart()
-for n in range(54):
+for n in range(int(sys.argv[2])):
     p.randomstep()
-p.printchart(16)
+p.printchart(int(sys.argv[1]))
