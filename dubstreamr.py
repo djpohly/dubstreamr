@@ -10,7 +10,7 @@ Rows = collections.namedtuple("Rows", ['none', 'measure', 'arrows'])
 
 # Parameters
 # Eighths
-#BEAT, MAXMOVE, MAXSTRETCH, ADVCROSS = 8, 2.6, 2.6, False
+#BEAT, MAXMOVE, MAXSTRETCH, MAXCROSS, ADVCROSS, MAXSTAND = 8, 2.6, 2.6, 1.5, False, 3
 ## Advanced eighths
 #BEAT, MAXMOVE, MAXSTRETCH, ADVCROSS = 8, 2.6, 2.6, True
 ## Twelfths
@@ -26,8 +26,9 @@ MEASURES = int(sys.argv[1])
 BEAT = int(sys.argv[2])
 MAXMOVE = float(sys.argv[3])
 MAXSTRETCH = float(sys.argv[4])
-ADVCROSS = bool(int(sys.argv[5]))
-MAXSTAND = int(sys.argv[6])
+MAXCROSS = float(sys.argv[5])
+ADVCROSS = bool(int(sys.argv[6]))
+MAXSTAND = int(sys.argv[7])
 
 
 # Arrow data (id, location on pad)
@@ -142,10 +143,9 @@ class Player:
         # Calculate angle for least twisting
         newangle = angle(*newfeet, self.rotation)
 
-        # Don't turn backwards (never place feet more than 180 degrees rotated,
-        # and only allow exactly 180 when the feet are next to each other, as
-        # in the middle of a staircase)
-        if isabove(abs(newangle), math.pi) or (math.isclose(newangle, math.pi) and isabove(dist(*newfeet), 1)):
+        # Don't turn past 180 degrees, and if we are crossed over (past 90) be
+        # sure feet are a bit closer together
+        if isabove(abs(newangle), math.pi) or (isabove(abs(newangle), math.pi / 2) and isabove(dist(*newfeet), MAXCROSS)):
             return False
         # Don't force a quick twist
         if isabove(abs(newangle - self.rotation), math.pi):
