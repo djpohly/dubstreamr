@@ -126,8 +126,8 @@ class Player:
         newfeet[self.weight ^ 1] = arrow
 
         # Going nowhere is an option if not for too long
-        if self.stand < MAXSTAND and newfeet == self.feet:
-            return True
+        if newfeet == self.feet:
+            return self.stand < MAXSTAND
 
         # Don't step on your other foot (no footswitches)
         if arrow == self.feet[self.weight]:
@@ -174,6 +174,10 @@ class Player:
         self.weight ^= 1
         if self.crossed != self.weight and self.feet[self.weight] != arrow:
             self.planted = False
+        if self.feet[self.weight] == arrow:
+            self.stand += 1
+        else:
+            self.stand = 0
         self.feet[self.weight] = arrow
 
         # Update rotation angle
@@ -186,20 +190,15 @@ class Player:
         self.rotation = newrot
 
         # Save to chart
-        self.chart.append((arrow.index, self.weight, self.rotation, self.planted, self.crossed))
+        self.chart.append((arrow.index, self.weight, self.rotation, self.planted, self.crossed, self.stand))
 
     def randomstep(self):
         # Figure out where we can step
         valid = list(filter(self.isvalidstep, ARROWS))
-        oldfeet = self.feet.copy()
         if valid:
             self.step(random.choice(valid))
         else:
             self.step(self.feet[self.weight ^ 1])
-        if self.feet == oldfeet:
-            self.stand += 1
-        else:
-            self.stand = 0
 
     def printchart(self, note, offset=0, rows=ROWS):
         i = 0
@@ -209,12 +208,12 @@ class Player:
             i += 1
         # Print actual chart
         #lr = 0
-        for n, w, rot, p, x in self.chart:
+        for n, w, rot, p, x, stand in self.chart:
             if i > 0 and i % note == 0:
                 print(rows.measure)
             print(rows.arrows[n])
-            #print("%s %s%s%s\t%4d\t%+4d" % (rows.arrows[n], "LR"[w], "P" if p else " ", "X" if x >= 0 else " ",
-            #    int(math.degrees(rot)), int(math.degrees(rot - lr))))
+            #print("%s %s%s%s\t%4d\t%+4d\t%s" % (rows.arrows[n], "LR"[w], "P" if p else " ", "X" if x >= 0 else " ",
+            #    int(math.degrees(rot)), int(math.degrees(rot - lr)), str(stand) if stand else ""))
             #lr = rot
             i += 1
         # Fill out remainder of last measure
