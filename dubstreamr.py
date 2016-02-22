@@ -8,6 +8,28 @@ import math
 Arrow = collections.namedtuple("Arrow", ['index', 'x', 'y'])
 Rows = collections.namedtuple("Rows", ['none', 'measure', 'arrows'])
 
+# Parameters
+# Eighths
+#BEAT, MAXMOVE, MAXSTRETCH, ADVCROSS = 8, 2.6, 2.6, False
+## Advanced eighths
+#BEAT, MAXMOVE, MAXSTRETCH, ADVCROSS = 8, 2.6, 2.6, True
+## Twelfths
+#BEAT, MAXMOVE, MAXSTRETCH, ADVCROSS = 12, 2.1, 2.6, False
+## Advanced twelfths
+#BEAT, MAXMOVE, MAXSTRETCH, ADVCROSS = 12, 2.1, 2.6, True
+## Sixteenths, no candles
+#BEAT, MAXMOVE, MAXSTRETCH, ADVCROSS = 16, 1.9, 2.6, False
+## Sixteenths, candles allowed
+#BEAT, MAXMOVE, MAXSTRETCH, ADVCROSS = 16, 2.1, 2.6, False
+
+MEASURES = int(sys.argv[1])
+BEAT = int(sys.argv[2])
+MAXMOVE = float(sys.argv[3])
+MAXSTRETCH = float(sys.argv[4])
+ADVCROSS = bool(int(sys.argv[5]))
+MAXSTAND = int(sys.argv[6])
+
+
 # Arrow data (id, location on pad)
 ARROWS = [
     Arrow(0, 0, 1),
@@ -80,36 +102,41 @@ class Player:
         self.rotation = 0
         self.planted = False
         self.crossed = -1
+        self.stand = 0
 
     def randomstart(self):
-        #self.weight = random.randrange(2)
-        #foot1 = random.choice(ARROWS)
-        #foot2 = random.choice(filter(lambda a: a.x != foot1.x, ARROWS))
-        #if foot1.x < foot2.x:
-        #    self.feet = [foot2, foot1]
-        #else:
-        #    self.feet = [foot1, foot2]
-        self.weight = 1
-        self.step(ARROWS[3])
-        self.step(ARROWS[4])
+        foot1 = random.choice(ARROWS)
+        foot2 = random.choice(list(filter(
+            lambda a: a.x != foot1.x and
+                not isabove(dist(a, foot1), MAXSTRETCH),
+            ARROWS)))
+        if foot1.x < foot2.x:
+            self.weight = 1
+        else:
+            self.weight = 0
+        self.step(foot1)
+        self.step(foot2)
+        #self.weight = 1
+        #self.step(ARROWS[0])
+        #self.step(ARROWS[1])
 
     def isvalidstep(self, arrow):
         # Set up proposed new position
         newfeet = self.feet.copy()
         newfeet[self.weight ^ 1] = arrow
 
-        # Going nowhere is always an option
-        if newfeet == self.feet:
+        # Going nowhere is an option if not for too long
+        if self.stand < MAXSTAND and newfeet == self.feet:
             return True
 
         # Don't step on your other foot (no footswitches)
         if arrow == self.feet[self.weight]:
             return False
         # Don't move foot too quickly
-        if dist(self.feet[self.weight ^ 1], arrow) > 2.6:
+        if isabove(dist(self.feet[self.weight ^ 1], arrow), MAXMOVE):
             return False
         # Don't stretch too far
-        if dist(*newfeet) > 2.6:
+        if isabove(dist(*newfeet), MAXSTRETCH):
             return False
 
         # Calculate angle for least twisting
@@ -127,6 +154,10 @@ class Player:
         # If we have our feet crossed in the center, any moving foot must uncross
         if self.feet == [ARROWS[4], ARROWS[3]] and isabove(abs(newangle), math.pi / 2):
             return False
+
+        # For advanced crossovers, leave out the following rules
+        if ADVCROSS:
+            return True
 
         # If we are crossed over, the anchor foot if moved needs to help us uncross
         if self.crossed == self.weight and not isbelow(abs(newangle), abs(self.rotation)):
@@ -160,7 +191,15 @@ class Player:
     def randomstep(self):
         # Figure out where we can step
         valid = list(filter(self.isvalidstep, ARROWS))
-        self.step(random.choice(valid))
+        oldfeet = self.feet.copy()
+        if valid:
+            self.step(random.choice(valid))
+        else:
+            self.step(self.feet[self.weight ^ 1])
+        if self.feet == oldfeet:
+            self.stand += 1
+        else:
+            self.stand = 0
 
     def printchart(self, note, offset=0, rows=ROWS):
         i = 0
@@ -169,13 +208,14 @@ class Player:
             print(rows.none)
             i += 1
         # Print actual chart
-        lr = 0
+        #lr = 0
         for n, w, rot, p, x in self.chart:
             if i > 0 and i % note == 0:
                 print(rows.measure)
-            print("%s %s%s%s\t%4d\t%+4d" % (rows.arrows[n], "LR"[w], "P" if p else " ", "X" if x >= 0 else " ",
-                int(math.degrees(rot)), int(math.degrees(rot - lr))))
-            lr = rot
+            print(rows.arrows[n])
+            #print("%s %s%s%s\t%4d\t%+4d" % (rows.arrows[n], "LR"[w], "P" if p else " ", "X" if x >= 0 else " ",
+            #    int(math.degrees(rot)), int(math.degrees(rot - lr))))
+            #lr = rot
             i += 1
         # Fill out remainder of last measure
         while i % note != 0:
@@ -184,6 +224,7 @@ class Player:
 
 p = Player()
 p.randomstart()
-for n in range(int(sys.argv[2])):
+# Calculate number of steps, minus two automatic ones from randomstart
+for n in range(MEASURES * BEAT - 2):
     p.randomstep()
-p.printchart(int(sys.argv[1]))
+p.printchart(BEAT, rows=SMROWS)
