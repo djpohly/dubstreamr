@@ -5,30 +5,6 @@ import collections
 import random
 import math
 
-# Problems still to solve
-#
-# Advanced crossovers:
-# |    ^  :       | L       26      +0
-# |      >:       | R       45     +18
-# |    ^  :       | L       45      +0
-# |      >:       | R       45      +0
-# |    ^  :       | L       45      +0
-# |      >:       | R       45      +0
-# |       :<      | LPX    180    +135
-# |  v    :       | R X    153     -26 <- rotation goes down but feels more crossed
-# |       :<      | L X    153      +0
-# |  v    :       | R X    153      +0
-# |       :<      | L X    153      +0
-# |  v    :       | R X    153      +0
-# |    ^  :       | L X     90     -63
-# |      >:       | R       45     -45
-# |    ^  :       | L       45      +0
-# |  v    :       | R       90     +45
-#
-# Thoughts: we need some special handling for being crossed in the middle.  Not
-# only is it the only permissible 180 rotation, but even things which lower the
-# rotation feel like crossing more due to stretch distance.
-
 Arrow = collections.namedtuple("Arrow", ['index', 'x', 'y'])
 Rows = collections.namedtuple("Rows", ['none', 'measure', 'arrows'])
 
@@ -146,6 +122,10 @@ class Player:
             return False
         # Don't force a quick twist
         if isabove(abs(newangle - self.rotation), math.pi):
+            return False
+
+        # If we have our feet crossed in the center, any moving foot must uncross
+        if self.feet == [ARROWS[4], ARROWS[3]] and isabove(abs(newangle), math.pi / 2):
             return False
 
         # If we are crossed over, the anchor foot if moved needs to help us uncross
